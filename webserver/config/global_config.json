@@ -1,0 +1,9 @@
+{
+  "port": 3000,
+  "debug_env": "project-template",
+  "views_directory": "views",
+  "views_engine": "jade",
+  "static_directory": "public",
+  "log_pattern": "dev",
+  "favicon_path": "/public/favicon.ico"
+}

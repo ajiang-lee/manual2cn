@@ -1,0 +1,80 @@
+<nav class="navbar navbar-inverse">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-items">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" ui-sref="home">中文手册</a>
+        </div>
+        <div class="collapse navbar-collapse" id="navbar-items">
+            <ul class="nav navbar-nav">
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown" role="button">Node<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="javascript:void(0);">简介</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown" role="button">Redis<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="javascript:void(0);">简介</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown" role="button">MongoDB<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="javascript:void(0);">简介</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown" role="button">Nginx<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="javascript:void(0);">简介</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown" role="button">AngularJS<span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a ui-sref="home.ui-router-wiki">UI Router Wiki</a>
+                        </li>
+                        <li>
+                            <a href="#">UI Router API</a>
+                        </li>
+                        <li role="separator" class="divider"></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="javascript:void(0);">关于站点</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container" ui-view>
+    <blockquote>
+        <p>Angular UI Router Wiki中文翻译，对应版本为0.2.15
+            &nbsp;
+            <a title="查看中文翻译" ui-sref="home.ui-router-wiki">
+                <span class="glyphicon glyphicon-log-in" aria-hidden="true"></span>
+            </a>
+            &nbsp;
+            <a title="下载angular-ui-router-0.2.15.tar.gz" href="framework/angular-ui-router-0.2.15.tar.gz">
+                <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+            </a>
+        </p>
+        <footer><a title="查看英文原文" target="_blank" href="https://github.com/angular-ui/ui-router/wiki">https://github.com/angular-ui/ui-router/wiki</a></footer>
+    </blockquote>
+</div>
