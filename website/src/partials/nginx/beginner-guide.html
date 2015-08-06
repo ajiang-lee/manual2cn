@@ -1,0 +1,333 @@
+<h3 class="text-center">
+    初学者指南
+</h3>
+<ul>
+    <li>
+        <a title="Starting, Stopping, and Reloading Configuration" ng-click="gotoAnchor('paragraph01');">启动、停止，重新加载配置文件</a>
+    </li>
+    <li>
+        <a title="Configuration File’s Structure" ng-click="gotoAnchor('paragraph02');">配置文件的结构</a>
+    </li>
+    <li>
+        <a title="Serving Static Content" ng-click="gotoAnchor('paragraph03');">静态内容的访问服务</a>
+    </li>
+    <li>
+        <a title="Setting Up a Simple Proxy Server" ng-click="gotoAnchor('paragraph04');">反向代理服务器</a>
+    </li>
+    <li>
+        <a title="Setting Up FastCGI Proxying" ng-click="gotoAnchor('paragraph05');">FastCGI服务代理</a>
+    </li>
+</ul>
+<p>
+    本文简要介绍了Nginx的相关特性，并且描述了通过Nginx可以完成那些任务，本文假设读者已经在自己的机器上安装了Nginx。
+    如果尚未安装，请参考<a title="Installing nginx" ui-sref="home.nginx.installing-nginx">安装Nginx</a>。
+    本文介绍了如何启动、停止Nginx服务、如何重新加载配置文件、解释了配置文件的结构、如何使Nginx提供静态内容的访问服务、
+    如何配置Nginx的反向代理、如何链接FastCGI应用程序。
+</p>
+<p>
+    Nginx由一个主进程和多个工作进程组成。主进程负责读取并计算配置文件，以及维护工作进程；工作进程完成真正的请求处理操作。
+    Nginx基于事件驱动模型和操作系统机制在多个工作进程间高效的分配请求。工作进程的数目由配置文件指定，可以指定固定数目的工作进程，
+    也可以自动适应机器CPU的核数。
+</p>
+<p>
+    Nginx以及模块的工作方式由配置文件决定。默认情况下，配置文件的名称为<code>nginx.conf</code>，位于目录
+    <code>/usr/local/nginx/conf | /etc/nginx | /usr/local/etc/nginx</code>下。
+</p>
+<h4 id="paragraph01">
+    启动、停止，重新加载配置文件
+</h4>
+<p>
+    通过执行Nginx的可执行文件来启动服务。一旦Nginx完成启动，可以通过调用添加<code>-s</code>参数的可执行程序控制Nginx的运行。
+    语法如下：
+</p>
+<p>
+    <code>
+        nginx -s 信号
+    </code>
+</p>
+<p>
+    可用信号如下：
+</p>
+<ul>
+    <li>
+        <code>stop</code> - 快速停止（立即停止）
+    </li>
+    <li>
+        <code>quit</code> - 平滑停止（待已接收的请求处理完毕后停止）
+    </li>
+    <li>
+        <code>reload</code> - 重新加载配置文件（不会中断已接收请求的处理）
+    </li>
+    <li>
+        <code>reopen</code> - 重新打开日志文件
+    </li>
+</ul>
+<p>
+    例如，如果需要Nginx处理完已接收的请求然后停止服务，可以使用如下命令：
+    <br/>
+    <code>nginx -s quit</code>
+    <br/>
+</p>
+<div class="alert alert-warning">上述命令应该使用启动Nginx的用户执行。</div>
+<p>
+    如果更新了配置文件，只有重新加载配置文件或者重启Nginx服务才能生效。可以使用如下命令重新加载配置文件：
+    <br/>
+    <code>nginx -s reload</code>
+</p>
+<p>
+    一旦主进程接收到重新加载配置文件的信号，主进程会检查修改之后的配置文件的语法是否合法，之后尝试重新加载配置文件并应用修改之后的参数选项。
+    如果配置文件通过了语法检查，主进程会启动新的工作进程，并想老工作进程发送信号，要求老进程不再接收新请求，并在处理完已接收请求后自动关闭。
+    如果配置文件没有通过语法检查，主进程会回滚新配置文件指定的参数选项，仍然使用老的配置文件提供服务。老工作进程接收到该信号后，
+    会停止接收新的请求，对于已接收的请求，老工作进程会继续完成处理，待所有已接收请求处理完毕后，老工作进程会自动退出，最终完成新配置文件的重新加载。
+</p>
+<p>
+    除了上述使用Nginx可执行程序控制Nginx服务外，同样可以向Linux自身提供的命令传递相关信号以达到控制Nginx服务的目的，
+    比如使用Linux的kill命令停止服务。使用Linux命令时，直接将信号发送给指定进程号的进程。默认情况下，Nginx主进程的进程号被
+    写入文件<code>nginx.pid</code>中，该文件默认存储在<code>/usr/local/nginx/logs | /var/run</code>目录中。
+    例如，如果主进程号为1628，可以使用kill命令平滑的停止服务：
+    <br/>
+    <code>kill -s QUIT 1628</code>
+</p>
+<P>
+    使用ps命令可以获得所有的Nginx进程信息，如下所示：
+    <br/>
+    <code>ps -ax | grep nginx</code>
+</P>
+<h4 id="paragraph02">
+    配置文件的结构
+</h4>
+<p>
+    Nginx由不同的模块组成，模块由配置文件中的指令控制。指令分为简单指令和块指令。一个简单指令由指令名称、空格分隔的参数、末尾的分号组成。
+    一个块指令由花括号括起来的一组指令组成。如果一个块指令包含一些列的其他指令，则称该指令为上下文（例如：events、http、server、location）。
+</p>
+<p>
+    配置文件中的指令没有被包含在任意指令内，则这些指令默认位于main上下文中。events和http指令位于main上下文中，server指令位于http上下文中，
+    location指令位于server上下文中。
+</p>
+<p>
+    配置文件中以<code>#</code>开始的行为注释内容。
+</p>
+<h4 id="paragraph03">
+    静态内容的访问服务
+</h4>
+<p>
+    Web服务器一个重要的功能就是提供静态内容（比如：图片、静态HTML页面等等）的访问服务。下文中列举了一个示例，
+    依据不同的请求路径，Nginx会返回不同目录下的文件：<code>/data/www</code>(该目录可能包含HTML文件)，
+    <code>/data/images</code>（该目录包含图片），完成上述任务，需要修改配置文件：在http指令下包含一个server指令，
+    在server指令下包含两个location指令。
+</p>
+<p>
+    首先，创建目录<code>/data/www</code>，并在目录中创建<code>index.html</code>文件；创建目录<code>/data/images</code>，
+    并将图片放入该目录。
+</p>
+<p>
+    然后，打开配置文件。默认的配置文件中已经包含了一些配置示例，但大部分已被注释。写入如下的配置项：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            http {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    通常情况下，一个配置文件中会包含多个<code>server</code>指令，该指令通过<code>listen</code>指令监听端口和<code>server_names</code>
+    判定请求的服务节点。一旦Nginx判定使用某个<code>server</code>处理用户请求，会使用请求头中指定的URI匹配<code>location</code>指令指定的路径。
+</p>
+<p>
+    将下述配置添加到<code>server</code>指令中：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            location / {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;root /data/www<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    指令块<code>location</code>指定了匹配前缀“/”。对于已匹配请求，URI会被追加到<code>root</code>指令指定的路径后（即：/data/www）。
+    最终形成的路径就是请求文件所在的路径。如果存在多个匹配的<code>location</code>，则Nginx会选择匹配最长的。上例中的<code>location</code>
+    指定的前缀长度最短（长度为1），如果没有其他匹配的<code>location</code>,则使用该长度为1的匹配。
+</p>
+<p>
+    接下来，添加如下配置项：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            location /images/ {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;/data;
+            }
+        </code>
+    </div>
+</div>
+<p>
+    上述指令会匹配以<code>/images/</code>为前缀的请求；<code>location /</code>指令也会匹配以<code>/images/</code>为前缀的请求，
+    但是匹配长度为1，Nginx会使用上述指令。
+</p>
+<p>
+    最终配置文件的配置选项如下：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location / {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root /data/www;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location /images/ {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root /data;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    上述配置示例已经可以正常提供服务，该服务监听标准的80端口，可以通过<code>http://localhost/</code>访问。
+    对于以<code>/images/</code>为前缀的请求，服务器会返回目录<code>/data/images/</code>下的指定文件。
+    例如，对于请求<code>http://localhost/images/example.png</code>，Nginx会将目录<code>/data/images/</code>下的
+    <code>example.png</code>文件返回，如果文件不存在，Nginx会返回404错误信息。其他不以<code>/iamges/</code>为前缀的请求，
+    Nginx会返回<code>/data/www/</code>目录下的文件，比如，对于请求<code>http://localhost/some/example.html</code>，
+    Nginx会将目录<code>/data/www/some/</code>下的<code>example.html</code>文件返回。
+</p>
+<p>
+    为了使修改的配置文件生效，需要重新加载配置文件或者重启Nginx服务：<br/>
+    <code>nginx -s reload</code>
+</p>
+<div class="alert alert-warning">
+    如果发现服务不能按照预期执行，可以查看Nginx的日志文件<code>access.log | error.log</code>。
+</div>
+<h4 id="paragraph04">
+    反向代理服务器
+</h4>
+<p>
+    Nginx一个常用的用法是作为反向代理服务器使用，即：接收用户的请求，然后将这些请求转发给后端服务器（被Nginx代理的服务器），接着接收后端服务器的返回结果，
+    最终将返回结果发送给用户。
+</p>
+<p>
+    接下来，我们会配置一个基本的反向代理服务器，该服务器会提供本地目录中图片的访问服务，并且将其他请求转发到被代理的服务器。
+    在这个示例中，上述两个服务会在同一个Nginx示例中配置。
+</p>
+<p>
+    首先，在配置文件中添加<code>server</code>指令块：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 8080;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;root /data/up1;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location / {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    上例配置了一个简单的服务器，该服务器监听8080端口（在上文的示例中，没有使用<code>listen</code>指令指定监听的端口，则默认监听80端口），
+    并且将所有的请求映射到本地目录<code>/data/up1</code>中。在本地文件系统中创建该目录，并在该目录中创建<code>index.html</code>文件。
+    注意：上例中的<code>root</code>指令配置在<code>server</code>的上下文中，因此如果<code>location</code>指令没有指定<code>root</code>指令，
+    则使用继承自<code>server</code>指令中指定的<code>root</code>指令（即：指令的继承机制）。
+</p>
+<p>
+    接下来，修改上文中介绍的配置示例，使之成为一个反向代理服务器。在第一个<code>location</code>指令块中，
+    使用指令<code>proxy_pass</code>指令指定需要代理的服务器的地址和端口号。
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location / {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_pass http://localhost:8080;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location /images/ {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root /data;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    修改上述示例中的第二个<code>location</code>指令块，上述示例中的配置将以<code>/images/</code>为前缀的请求映射到
+    路径<code>/data/images</code>中的文件，为了映射带有图片格式后缀的请求，修改为如下配置：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            location ~ \.(gif|jpg|png)$ {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;/data/images;<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    上述配置中指定了一个正则表达式匹配，匹配所有以<code>.gif | .jpg | .png</code>结尾的URI。
+    正则表达式参数必须以符号<code>~</code>开始。上述配置会将以<code>.gif | .jpg | .png</code>结尾的URI
+    映射到目录<code>/data/images</code>中。
+</p>
+<p>
+    当Nginx选择<code>location</code>来处理请求时，首先检查指定前缀的<code>location</code>指令，并记录最长匹配的<code>location</code>，
+    之后检查正则表达式，如果存在匹配的正则表达式，Nginx选择该<code>location</code>，否则，Nginx选择记录的<code>location</code>（即：匹配的最长的<code>location</code>）。
+</p>
+<p>
+    针对该示例最终形成的配置项为：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location / {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_pass http://localhost:8080/;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location ~ \.(gif|jpg|png)$ {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root /data/images;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    上例中配置的服务器会过滤所有以<code>.gif, .jpg, .png</code>结尾的请求，并将这些请求映射到路径<code>/data/images</code>下的文件，
+    并把其他的请求转发给后台服务器（http://localhost:8080/）。
+</p>
+<p>
+    为了使上述配置文件生效，需要重新加载配置文件，参考上文中的方法。
+</p>
+<h4 id="paragraph05">
+    FastCGI服务代理
+</h4>
+<p>
+    Nginx可以将请求路由给FastCGI服务器，FastCGI应用程序可以使用不同的框架和编程语言实现，比如：PHP。
+</p>
+<p>
+    在Nginx中配置FastCGI服务器，最基本的用法是使用<code>fastcgi_pass</code>指令替换<code>proxy_pass</code>指令，
+    并使用指令<code>fastcgi_params</code>向FastCGI服务器传递相应的参数。假设FastCGI服务器可以通过<code>http://localhost:9000</code>
+    路径访问，可以将上文介绍反向代理的配置选项中的<code>proxy_pass</code>指令替换为<code>fastcgi_pass</code>指令，
+    并将参数修改为：<code>http://localhost:9000</code>。如果是PHP应用，参数<code>SCRIPT_FILENAME</code>用于指定脚本名称，
+    <code>QUERY_STRING</code>参数用于传递查询参数，配置示例可能如下：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location / {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fastcgi_pass localhost:9000;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fastcgi_params SCRIPT_FILENAME $document_root$fastcgi_script_name;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fastcgi_params QUERY_STRING $query_string;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location ~ \.(gif|jpg|png)$ {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root /data/images;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    上述配置示例会将静态的图片请求（以.gif, .jep, .png结尾的请求）映射到本地文件系统同，将除此之外的其他请求通过FastCGI协议路由给
+    <code>http://localhost:9000/</code>服务器处理。
+</p>

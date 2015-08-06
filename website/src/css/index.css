@@ -1,4 +1,5 @@
 body {
     font-family: "微软雅黑","Helvetica Neue",Helvetica,Arial,sans-serif;
+    line-height: 25px;
     background-image: url("../image/bg.png");
 }

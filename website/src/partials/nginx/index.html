@@ -1,2 +1,27 @@
-<p>Nginx首页内容展示</p>
-<div ui-view></div>
+<style>
+    .panel-body ul li {
+        padding-top: 5px;
+    }
+</style>
+<div class="row">
+    <div class="col-md-3">
+        <div class="panel panel-primary">
+            <div class="panel-body">
+                <ul>
+                    <li>
+                        <a title="Installing nginx" ui-sref="home.nginx.installing-nginx">安装Nginx</a>
+                    </li>
+                    <li>
+                        <a title="Beginner's Guide" ui-sref="home.nginx.beginner-guide">初学者指南</a>
+                    </li>
+                    <li>
+                        <a title="How nginx processes a request" ui-sref="home.nginx.process-request">Nginx如何处理请求</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9" ui-view>
+        <!-- 该处用于展示关于该文档的更新记录 -->
+    </div>
+</div>

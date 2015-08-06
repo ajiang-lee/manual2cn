@@ -1,0 +1,175 @@
+<h3 class="text-center">
+    Nginx如何处理请求
+</h3>
+<ul>
+    <li>
+        <a title="Name-based virtual servers" ng-click="gotoAnchor('paragraph01');">基于名称的服务器</a>
+    </li>
+    <li>
+        <a title="How to prevent processing requests with undefined server names" ng-click="gotoAnchor('paragraph02');">如何阻止处理未指定服务器名称的请求</a>
+    </li>
+    <li>
+        <a title="Mixed name-based and IP-based virtual servers" ng-click="gotoAnchor('paragraph03');">基于名称和基于IP的混合服务器</a>
+    </li>
+    <li>
+        <a title="A simple PHP site configuration" ng-click="gotoAnchor('paragraph04');">一个PHP站点的简单配置</a>
+    </li>
+</ul>
+<h4 id="paragraph01">
+    基于名称的服务器
+</h4>
+<p>
+    对于一个请求，Nginx首先需要确定使用哪个服务器来处理该请求。下例中配置了3个服务器，这三个服务器均监听端口<code>*.80</code>。
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 80;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.org www.example.org;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+            }<br/>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 80;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.net www.example.net;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+            }<br/>server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 80;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.com www.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    针对上例的配置，对于用户请求，Nginx只需要检测请求头中的<code>Host</code>字段即可决定使用哪一个服务器处理该请求。
+    如果<code>Host</code>字段的值没有匹配到任何一个服务器，或者用户请求中根本没有包含该字段，Nginx会将这些请求交由默认服务器处理。
+    在上例中，配置的第一个服务器为默认服务器（这是Nginx的默认行为）；当然，也可以通过指令显式的指定哪一个服务器为默认服务器：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 80 default_server;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.net www.example.net;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+            }
+        </code>
+    </div>
+</div>
+<div class="alert alert-warning">
+    参数<code>default_server</code>从版本0.8.21引入，在早些版本中应该使用参数<code>default</code>指定默认服务器。
+</div>
+<h4 id="paragraph02">
+    如何阻止处理未指定服务器名称的请求
+</h4>
+<p>
+    如果允许用户请求的请求头中不包含字段<code>Host</code>，可以定义一个服务器专门处理这种情况（直接丢弃该用户请求）：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 80;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name "";<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;return 444;<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    上例中，服务器名称被设置为空字符串，该空字符串可以匹配不包含<code>Host</code>字段的请求，并且，对于这种请求，
+    直接返回<code>444</code>状态码，并关闭链接。
+</p>
+<div class="alert alert-warning">
+    从版本0.8.48开始，服务器名称的默认值为空，所以可以省略配置项<code>server_name "";</code>。在早些版本中，
+    主机名称是服务器名称的默认值。
+</div>
+<h4 id="paragraph03">
+    基于名称和基于IP的混合服务器
+</h4>
+<p>
+    以下示例展示了一个复杂的配置项，每个服务器同时指定了IP地址和服务器名称
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 192.168.1.1:80;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.org www.example.org;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+            }<br/>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 192.168.1.1:80;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.net www.example.net;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+            }<br/>server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 192.168.1.2:80;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.com www.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    在上例配置中，Nginx首先检查请求的请求的IP和端口是否匹配<code>listen</code>指令指定的IP和端口；
+    然后检查请求头中的<code>Host</code>字段是否匹配<code>server_name</code>指令指定的值。
+    如果没有匹配到<code>server_name</code>，Nginx会使用默认服务器处理该请求。例如：请求<code>192.168.1.1:80</code>
+    下的<code>www.example.com</code>时，Nginx会使用上例配置中的第一个服务器处理该请求，因为配置文件中没有指定<code>www.example.com</code>
+    对应的默认服务器。
+</p>
+<p>
+    正如上文中介绍的，默认服务器是通过<code>listen</code>指令指定的：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 192.168.1.1:80;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.org www.example.org;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+            }<br/>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 192.168.1.1:80 default_server;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.net www.example.net;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+            }<br/>server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 192.168.1.2:80 default_server;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.com www.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;...<br/>
+            }
+        </code>
+    </div>
+</div>
+<h4 id="paragraph04">
+    一个PHP站点的简单配置
+</h4>
+<p>
+    下例配置展示了一个PHP站点的简单配置：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            server {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;listen 80;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server_name example.org www.example.org;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;root /data/www;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location / {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;index index.html index.html;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location ~* \.(gif|jpg|png)$ {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;expires 30d;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;location ~ \.php$ {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fastcgi_pass localhost:9000;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;include fastcgi_params;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    首先，Nginx会无序搜索配置文件中使用常量字符串指定的前缀<code>location</code>。在上例中只有<code>"/"</code>，由于他可以匹配任意请求URI，
+    因此将她
+</p>
