@@ -1,8 +1,8 @@
 var router = require('express').Router();
-var _ = require('underscore');
-var service = require('../service');
-var db = require('../util/mysql_pool.js');
-var cache = require('../util/redis_client.js');
+//var _ = require('underscore');
+//var service = require('../service');
+//var db = require('../util/mysql_pool.js');
+//var cache = require('../util/redis_client.js');
 
 // 示例路由
 router.get('/', function(req, res, next) {
