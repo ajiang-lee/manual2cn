@@ -53,6 +53,12 @@ manual2cn.config(function($stateProvider, $urlRouterProvider) {
     }).state('home.nginx.process-request', {
         url: '/process-request',
         templateUrl: 'partials/nginx/process-request.html'
+    }).state('home.nginx.server-names', {
+        url: '/server-names',
+        templateUrl: 'partials/nginx/server-names.html'
+    }).state('home.nginx.http-load-balancer', {
+        url: '/http-load-balancer',
+        templateUrl: 'partials/nginx/http-load-balancer.html'
     });
 });
 

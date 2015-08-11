@@ -3,16 +3,16 @@
 </h3>
 <ul>
     <li>
-        <a title="Name-based virtual servers" ng-click="gotoAnchor('paragraph01');">基于名称的服务器</a>
+        <a title="Name-based virtual servers" href="javascript:void(0);" ng-click="gotoAnchor('paragraph01');">基于名称的服务器</a>
     </li>
     <li>
-        <a title="How to prevent processing requests with undefined server names" ng-click="gotoAnchor('paragraph02');">如何阻止处理未指定服务器名称的请求</a>
+        <a title="How to prevent processing requests with undefined server names" href="javascript:void(0);" ng-click="gotoAnchor('paragraph02');">如何阻止处理未指定服务器名称的请求</a>
     </li>
     <li>
-        <a title="Mixed name-based and IP-based virtual servers" ng-click="gotoAnchor('paragraph03');">基于名称和基于IP的混合服务器</a>
+        <a title="Mixed name-based and IP-based virtual servers" href="javascript:void(0);" ng-click="gotoAnchor('paragraph03');">基于名称和基于IP的混合服务器</a>
     </li>
     <li>
-        <a title="A simple PHP site configuration" ng-click="gotoAnchor('paragraph04');">一个PHP站点的简单配置</a>
+        <a title="A simple PHP site configuration" href="javascript:void(0);" ng-click="gotoAnchor('paragraph04');">一个PHP站点的简单配置</a>
     </li>
 </ul>
 <h4 id="paragraph01">
@@ -155,7 +155,7 @@
             &nbsp;&nbsp;&nbsp;&nbsp;server_name example.org www.example.org;<br/>
             &nbsp;&nbsp;&nbsp;&nbsp;root /data/www;<br/>
             &nbsp;&nbsp;&nbsp;&nbsp;location / {<br/>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;index index.html index.html;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;index index.html index.php;<br/>
             &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
             &nbsp;&nbsp;&nbsp;&nbsp;location ~* \.(gif|jpg|png)$ {<br/>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;expires 30d;<br/>
@@ -171,5 +171,45 @@
 </div>
 <p>
     首先，Nginx会无序搜索配置文件中使用常量字符串指定的前缀<code>location</code>。在上例中只有<code>"/"</code>，由于他可以匹配任意请求URI，
-    因此将她
+    因此Nginx会在没有其他匹配项的情况下才会使用该<code>location</code>。接着，Nginx会按顺序匹配配置文件中的正则表达式，
+    如果匹配到一个正则表达式，则搜索结束，使用匹配到的<code>location</code>处理请求。如果没有匹配到正则表达式，
+    Nginx会使用记录下的最长的字符串前缀的<code>location</code>（在本例中为：<code>"/"</code>）。
 </p>
+<p>
+    注意，Nginx在进行<code>location</code>匹配时，只会匹配不包含查询字符串的URI部分，原因是查询字符串可能包含不同的值，例如：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            /index.php?user=john&page=1<br/>
+            /index.php?page=1&user=john<br/>
+            /index.php?page=1&something+else&user=john
+        </code>
+    </div>
+</div>
+<p>
+    最后，我们分析一下针对不同的请求，基于上述配置文件Nginx是如何处理各个请求的：
+</p>
+<ul>
+    <li>
+        如果请求为：<code>/logo.gif</code>，第一个<code>location /</code>会匹配，并且第二个<code>location ~* \.(gif|jpe|png)$</code>
+        也会匹配，因此，Nginx会使用第二个匹配项，将文件<code>/data/www/logo.gif</code>返回给客户端。
+    </li>
+    <li>
+        如果请求为：<code>/index.php</code>，第一个<code>location /</code>会匹配，并且第三个<code>location ~ \.(php)$</code>
+        也会匹配，因此，Nginx会使用第三个匹配项，将请求转发给<code>localhost:9000</code>下的FastCGI服务器。
+        指令<code>fastcgi_param</code>会将参数<code>SCRIPT_FILENAME</code>赋值为：<code>/data/www/index.php</code>；
+        其中，<code>$document_root</code>等于<code>root</code>指令指定的值（即：/data/www），<code>$fastcgi_script_name</code>
+        等于匹配到的请求URI（即：/index.php）。
+    </li>
+    <li>
+        如果请求为：<code>/about.html</code>，只会被第一个<code>location /</code>会匹配，因此，Nginx会直接使用第一匹配项处理该请求，
+        即：直接返回文件<code>/data/www/about.html</code>。
+    </li>
+    <li>
+        如果请求为：<code>/</code>，情况将会变的复杂。只会被第一个<code>location /</code>会匹配，因此，Nginx会直接使用第一匹配项处理该请求。
+        根据<code>index</code>指令指定的参数，Nginx首先检查文件<code>/data/www/index.html</code>是否存在，如果存在则直接返回，处理结束；
+        如果不存在，检查文件<code>/data/www/index.php</code>是否存在，如果存在，Nginx会在内部做一个重定向操作，Nginx会重复上述的搜索步骤
+        （即：搜索/index.php的匹配项），如果不存在，则返回404错误。
+    </li>
+</ul>

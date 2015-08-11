@@ -1,0 +1,186 @@
+<h3 class="text-center">
+    使用Nginx作为HTTP服务器的负载均衡器
+</h3>
+<ul>
+    <li>
+        <a title="Load balancing methods" href="javascript:void(0);" ng-click="gotoAnchor('paragraph01');">负载均衡的方法</a>
+    </li>
+    <li>
+        <a title="Default load balancing configuration" href="javascript:void(0);" ng-click="gotoAnchor('paragraph02');">负载均衡的默认配置</a>
+    </li>
+    <li>
+        <a title="Least connected load balancing" href="javascript:void(0);" ng-click="gotoAnchor('paragraph03');">最少链接的负载均衡</a>
+    </li>
+    <li>
+        <a title="Session persistence" href="javascript:void(0);" ng-click="gotoAnchor('paragraph04');">会话持久化</a>
+    </li>
+    <li>
+        <a title="Weighted load balancing" href="javascript:void(0);" ng-click="gotoAnchor('paragraph05');">带有权重值的负载均衡</a>
+    </li>
+    <li>
+        <a title="Health checks" href="javascript:void(0);" ng-click="gotoAnchor('paragraph06');">健康检查</a>
+    </li>
+</ul>
+<p>
+    为多个应用程序实例创建负载均衡，通常来讲，可以优化资源利用、最大化吞吐量、降低冗余，以及保证灾难容忍机制。
+</p>
+<p>
+    使用Nginx作为一个高效的HTTP服务器负载均衡器，可以将流量分流到不同的应用实例，以达到提高性能、可扩展性、高可用性的目的。
+</p>
+<h4 id="paragraph01">
+    负载均衡的方法
+</h4>
+<p>
+    Nginx默认支持以下负载均衡机制（或称为方法）：
+</p>
+<dl>
+    <dt>
+        循环(round-robin)
+    </dt>
+    <dd style="margin-left: 30px;">
+        循环将请求分发到各个应用服务器
+    </dd>
+    <dt>
+        最少链接(least-connected)
+    </dt>
+    <dd style="margin-left: 30px;">
+        将请求分发到当前持有活动连接数最少的应用服务器
+    </dd>
+    <dt>
+        基于IP的哈希值(ip-hash)
+    </dt>
+    <dd style="margin-left: 30px;">
+        使用一个哈希函数决定将请求分发到哪一个服务器（基于客户端的IP地址）
+    </dd>
+</dl>
+<h4 id="paragraph02">
+    负载均衡的默认配置
+</h4>
+<p>
+    使用Nginx的复杂均衡，最简单的配置如下：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            http {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;upstream myapp1 {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;server srv1.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;server srv2.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;server srv3.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server{<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;listen 80;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;location / {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_pass http://myapp1;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    在上述示例配置中，同一个应用的3个实例分别部署在服务器srv1-srv3上。当没有指定负载均衡方法时，
+    默认使用循环方法。Nginx会将所有的请求平均的分发到这三个应用实例上。
+</p>
+<p>
+    在Nginx可以实现反向代理的包括：HTTP、HTTPS、FastCGI、uwsgi、SCGI，以及memcached。
+</p>
+<p>
+    如果需要配置HTTPS服务器的负责均衡，只需要使用https协议即可。
+</p>
+<p>
+    当需要为FastCGI、uwsgi、SCGI、memcached配置负载均衡时，使用对应的指令即可：<code>fastcgi_pass, uwsgi_pass, scgi_pass, memcached_pass</code>。
+</p>
+<h4 id="paragraph03">
+    最少链接的负载均衡
+</h4>
+<p>
+    另外一种负载均衡方法是最少链接数。最少链接方法可以控制各个应用实例上承载的活动连接数。
+</p>
+<p>
+    当使用最少链接数方法时，Nginx不会向一个高负载的应用实例分发过多的请求，而是将请求分发到负载较低的应用实例。
+</p>
+<p>
+    如果需要使用最少连接数的负载均衡方法，需要使用指令<code>least-conn</code>显式的声明：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            upstream myapp1 {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;least-conn;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server srv1.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server srv2.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server srv3.example.com;<br/>
+            }
+        </code>
+    </div>
+</div>
+<h4 id="paragraph04">
+    会话持久化
+</h4>
+<p>
+    当使用循环或者最少连接数负载均衡方法时，每一个用户请求可能被分发到不同的服务器处理，并不能保证同一个用户的请求被同一个服务器处理。
+</p>
+<p>
+    如果需要将某一个用户的请求绑定到同一个应用服务器处理，可以使用ip-hash负载均衡机制。
+</p>
+<p>
+    使用ip-hash方法时，Nginx使用用户的IP地址作为哈希值，决定应该由哪一个服务器处理该请求。该方法保证同一个用户的请求均会被同一个服务器处理，
+    除非指定的服务器不可用。
+</p>
+<p>
+    如果需要使用ip-hash负载均衡方法，需要使用指令<code>ip-hash</code>显式的声明：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            upstream myapp1 {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;ip-hash;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server srv1.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server srv2.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server srv3.example.com;<br/>
+            }
+        </code>
+    </div>
+</div>
+<h4 id="paragraph05">
+    带有权重值的负载均衡
+</h4>
+<p>
+    通过为每个服务器指定不同的权重值，可以影响Nginx的负载均衡算法。
+</p>
+<p>
+    在上文的示例中，并没有指定权重值，所以每一个服务器拥有相同的默认权重值，Nginx会平等对待每一个服务器。
+</p>
+<p>
+    可以如下为服务器指定权重值：
+</p>
+<div class="panel panel-default">
+    <div class="panel-body">
+        <code>
+            upstream myapp1 {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server srv1.example.com weight=3;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server srv2.example.com;<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;server srv3.example.com;<br/>
+            }
+        </code>
+    </div>
+</div>
+<p>
+    针对上述配置，如果有5个请求，则分发到各个服务器的请求数量为：3个请求分发到srv1；1个请求分发到srv2；一个请求分发到srv3。
+</p>
+<p>
+    在最近的版本中，可以为使用least-connetced, ip-hash方法的配置指定权重值。
+</p>
+<h4 id="paragraph06">
+    健康检查
+</h4>
+<p>
+    Nginx中的反向代理实现包含被动的健康检查。如果一个被代理的服务器返回失败错误，则Nginx会将这个服务器标记为失败，
+    并且会在接下来的一段时间避免将请求分发给这个服务器处理。
+</p>
+<p>
+    <code>max_fails</code>指令表示如果连续失败这么多次，则将该服务器标记为失败；该指令的默认值为1。如果配置为0，则表示禁用健康检查。
+    <code>fail_timeout</code>表示Nginx标记服务器失败持续的时间，在这段时间内，不会分发请求到该服务器；如果时间达到指定的值，
+    Nginx会尝试将请求重新分发到该服务器，如果成功处理，Nginx会将该服务器标记为成功。
+</p>
