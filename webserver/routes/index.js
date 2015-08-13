@@ -855,12 +855,4 @@ router.get('/', function(req, res, next) {
     //});
 });
 
-router.head('/head', function(req, res, next) {
-    res.send({
-        info: 'success'
-    });
-});
-
-
-
 module.exports = router;
