@@ -6,6 +6,8 @@ var router = require('express').Router();
 
 // 示例路由
 router.get('/', function(req, res, next) {
+    var startTime = new Date().getTime();
+    while (new Date().getTime() < startTime + 3000);
     res.send({
         "msg": "success",
         "total": 10012,
